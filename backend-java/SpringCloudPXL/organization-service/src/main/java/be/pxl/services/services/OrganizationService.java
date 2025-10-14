@@ -1,4 +1,3 @@
-// organization-service/src/main/java/be/pxl/services/services/OrganizationService.java
 package be.pxl.services.services;
 
 import be.pxl.services.domain.Organization;

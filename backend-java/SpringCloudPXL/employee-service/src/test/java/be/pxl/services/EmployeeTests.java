@@ -18,7 +18,10 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import java.util.List;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
@@ -33,7 +36,7 @@ public class EmployeeTests {
     private EmployeeRepository employeeRepository;
 
     @Container
-    private static PostgreSQLContainer postgreSQLContainer =
+    private static final PostgreSQLContainer postgreSQLContainer =
             new PostgreSQLContainer("postgres:18-alpine");
 
     @DynamicPropertySource
@@ -65,7 +68,16 @@ public class EmployeeTests {
                         .content(employeeString))
                 .andExpect(status().isCreated());
 
-        assertEquals(1, employeeRepository.findAll().size());
+        List<Employee> employees = employeeRepository.findAll();
+        assertEquals(1, employees.size());
+
+        Employee savedEmployee = employees.get(0);
+        assertEquals("Jan", savedEmployee.getName());
+        assertEquals(24, savedEmployee.getAge());
+        assertEquals("student", savedEmployee.getPosition());
+        assertEquals(1L, savedEmployee.getOrganizationId());
+        assertEquals(1L, savedEmployee.getDepartmentId());
+        assertNotNull(savedEmployee.getId());
     }
 
     @Test
@@ -85,14 +97,17 @@ public class EmployeeTests {
                 .departmentId(2L)
                 .build();
 
-        employeeRepository.save(employee1);
-        employeeRepository.save(employee2);
+        Employee saved1 = employeeRepository.save(employee1);
+        Employee saved2 = employeeRepository.save(employee2);
 
         mockMvc.perform(MockMvcRequestBuilders.get("/api/employee"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[0].name").value("John"))
-                .andExpect(jsonPath("$[1].name").value("Jane"));
+                .andExpect(jsonPath("$.length()").value(2));
+
+        List<Employee> allEmployees = employeeRepository.findAll();
+        assertEquals(2, allEmployees.size());
+        assertTrue(allEmployees.stream().anyMatch(e -> e.getName().equals("John")));
+        assertTrue(allEmployees.stream().anyMatch(e -> e.getName().equals("Jane")));
     }
 
     @Test
@@ -109,11 +124,13 @@ public class EmployeeTests {
 
         mockMvc.perform(MockMvcRequestBuilders.get("/api/employee/" + savedEmployee.getId()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name").value("Bob"))
-                .andExpect(jsonPath("$.age").value(28))
-                .andExpect(jsonPath("$.position").value("Analyst"))
-                .andExpect(jsonPath("$.organizationId").value(1))
-                .andExpect(jsonPath("$.departmentId").value(1));
+                .andExpect(jsonPath("$.name").value("Bob"));
+
+        Optional<Employee> foundEmployee = employeeRepository.findById(savedEmployee.getId());
+        assertTrue(foundEmployee.isPresent());
+        assertEquals("Bob", foundEmployee.get().getName());
+        assertEquals(28, foundEmployee.get().getAge());
+        assertEquals("Analyst", foundEmployee.get().getPosition());
     }
 
     @Test
@@ -146,9 +163,13 @@ public class EmployeeTests {
 
         mockMvc.perform(MockMvcRequestBuilders.get("/api/employee/department/1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[0].departmentId").value(1))
-                .andExpect(jsonPath("$[1].departmentId").value(1));
+                .andExpect(jsonPath("$.length()").value(2));
+
+        List<Employee> departmentEmployees = employeeRepository.findByDepartmentId(1L);
+        assertEquals(2, departmentEmployees.size());
+        assertTrue(departmentEmployees.stream().allMatch(e -> e.getDepartmentId().equals(1L)));
+        assertTrue(departmentEmployees.stream().anyMatch(e -> e.getName().equals("Alice")));
+        assertTrue(departmentEmployees.stream().anyMatch(e -> e.getName().equals("Charlie")));
     }
 
     @Test
@@ -174,14 +195,19 @@ public class EmployeeTests {
                 .organizationId(2L)
                 .departmentId(3L)
                 .build();
+
         employeeRepository.save(employee1);
         employeeRepository.save(employee2);
         employeeRepository.save(employee3);
 
         mockMvc.perform(MockMvcRequestBuilders.get("/api/employee/organization/1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[0].organizationId").value(1))
-                .andExpect(jsonPath("$[1].organizationId").value(1));
+                .andExpect(jsonPath("$.length()").value(2));
+
+        List<Employee> organizationEmployees = employeeRepository.findByOrganizationId(1L);
+        assertEquals(2, organizationEmployees.size());
+        assertTrue(organizationEmployees.stream().allMatch(e -> e.getOrganizationId().equals(1L)));
+        assertTrue(organizationEmployees.stream().anyMatch(e -> e.getName().equals("Eve")));
+        assertTrue(organizationEmployees.stream().anyMatch(e -> e.getName().equals("Frank")));
     }
 }

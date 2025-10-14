@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -35,7 +36,7 @@ public class DepartmentService implements IDepartmentService {
         return departmentRepository.findAll()
                 .stream()
                 .map(d -> mapToDepartmentResponse(d, false))
-                .toList();
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -43,7 +44,7 @@ public class DepartmentService implements IDepartmentService {
         return departmentRepository.findByOrganizationId(organizationId)
                 .stream()
                 .map(d -> mapToDepartmentResponse(d, false))
-                .toList();
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -51,7 +52,7 @@ public class DepartmentService implements IDepartmentService {
         return departmentRepository.findByOrganizationId(organizationId)
                 .stream()
                 .map(d -> mapToDepartmentResponse(d, true))
-                .toList();
+                .collect(Collectors.toList());
     }
 
     private DepartmentResponse mapToDepartmentResponse(Department department, boolean includeEmployees) {
