@@ -1,6 +1,8 @@
 package be.pxl.services.services;
 
+import be.pxl.services.client.NotificationClient;
 import be.pxl.services.domain.Employee;
+import be.pxl.services.domain.NotificationRequest;
 import be.pxl.services.domain.dto.EmployeeRequest;
 import be.pxl.services.domain.dto.EmployeeResponse;
 import be.pxl.services.repository.EmployeeRepository;
@@ -14,6 +16,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class EmployeeService implements IEmployeeService {
     private final EmployeeRepository employeeRepository;
+    private final NotificationClient notificationClient;
 
     private EmployeeResponse mapToEmployeeResponse(Employee employee) {
         return EmployeeResponse.builder()
@@ -41,6 +44,14 @@ public class EmployeeService implements IEmployeeService {
                 .position(employeeRequest.getPosition())
                 .build();
         employeeRepository.save(employee);
+
+        NotificationRequest notificationRequest = NotificationRequest
+                .builder()
+                .message("Employee Created")
+                .sender("Tom")
+                .build();
+
+        notificationClient.sendNotification(notificationRequest);
     }
 
     @Override
